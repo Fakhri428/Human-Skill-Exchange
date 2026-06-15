@@ -115,7 +115,7 @@
                         </form>
                     </section>
 
-                    <section class="grid gap-6 xl:grid-cols-3">
+                    <section class="grid gap-6 xl:grid-cols-4">
                         <article class="rounded-lg border border-slate-200 bg-white p-5">
                             <h2 class="text-base font-semibold text-slate-950">Tambah skill</h2>
                             <form method="POST" action="{{ route('skills.store') }}" class="mt-4 space-y-3">
@@ -165,6 +165,81 @@
                                 <button type="submit" class="w-full rounded-md bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700">Publikasikan need</button>
                             </form>
                         </article>
+
+                        <article class="rounded-lg border border-slate-200 bg-white p-5">
+                            <h2 class="text-base font-semibold text-slate-950">Tambah portfolio</h2>
+                            <form method="POST" action="{{ route('portfolios.store') }}" class="mt-4 space-y-3">
+                                @csrf
+                                <input name="title" value="{{ old('title') }}" placeholder="Portofolio Laravel API" required class="w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                                <textarea name="description" rows="3" placeholder="Jelaskan project atau hasil kerja" required class="w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-teal-500 focus:ring-teal-500">{{ old('description') }}</textarea>
+                                <input name="file_url" value="{{ old('file_url') }}" placeholder="Link file / gambar" type="url" class="w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                                <input name="project_url" value="{{ old('project_url') }}" placeholder="Link project" type="url" class="w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                                <button type="submit" class="w-full rounded-md bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700">Simpan portfolio</button>
+                            </form>
+                        </article>
+                    </section>
+
+                    <section class="rounded-lg border border-slate-200 bg-white">
+                        <div class="border-b border-slate-200 px-5 py-4">
+                            <h2 class="text-base font-semibold text-slate-950">Portfolio saya</h2>
+                        </div>
+                        <div class="divide-y divide-slate-100">
+                            @forelse ($viewer->portfolios as $portfolio)
+                                <article class="p-5">
+                                    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                        <div>
+                                            <p class="font-semibold text-slate-950">{{ $portfolio->title }}</p>
+                                            <p class="mt-2 text-sm leading-6 text-slate-600">{{ $portfolio->description }}</p>
+                                            <div class="mt-2 flex flex-wrap gap-3 text-xs text-teal-700">
+                                                @if ($portfolio->file_url)
+                                                    <a href="{{ $portfolio->file_url }}" target="_blank" class="font-semibold hover:underline">Lihat file</a>
+                                                @endif
+                                                @if ($portfolio->project_url)
+                                                    <a href="{{ $portfolio->project_url }}" target="_blank" class="font-semibold hover:underline">Lihat project</a>
+                                                @endif
+                                            </div>
+                                        </div>
+                                        <form method="POST" action="{{ route('portfolios.destroy', $portfolio) }}">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="rounded-md border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50">Hapus</button>
+                                        </form>
+                                    </div>
+                                </article>
+                            @empty
+                                <div class="p-5 text-sm text-slate-500">Belum ada portfolio.</div>
+                            @endforelse
+                        </div>
+                    </section>
+
+                    <section class="rounded-lg border border-slate-200 bg-white p-5">
+                        <h2 class="text-base font-semibold text-slate-950">Mentoring</h2>
+                        <p class="mt-1 text-sm text-slate-500">Pesan sesi mentoring dengan mentor yang tersedia.</p>
+
+                        <div class="mt-4 grid gap-4">
+                            @forelse ($mentoringRooms as $room)
+                                <div class="rounded-md border p-4">
+                                    <div class="flex items-start justify-between">
+                                        <div>
+                                            <p class="font-semibold">{{ $room->title }}</p>
+                                            <p class="mt-1 text-sm text-slate-500">{{ $room->description }}</p>
+                                            <p class="mt-2 text-xs text-slate-500">Mentor: {{ $room->mentor?->name ?? 'n/a' }}</p>
+                                        </div>
+                                        <div class="w-48">
+                                            <form method="POST" action="{{ route('mentoring-bookings.store') }}" class="space-y-2">
+                                                @csrf
+                                                <input type="hidden" name="mentoring_room_id" value="{{ $room->id }}">
+                                                <input name="scheduled_at" type="datetime-local" required class="w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                                                <input name="duration_minutes" type="number" min="15" placeholder="Durasi (menit)" class="w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                                                <button type="submit" class="w-full rounded-md bg-teal-600 px-3 py-2 text-xs font-semibold text-white hover:bg-teal-700">Pesan</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            @empty
+                                <div class="text-sm text-slate-500">Belum ada mentor tersedia.</div>
+                            @endforelse
+                        </div>
                     </section>
 
                     <section class="grid gap-6 xl:grid-cols-2">

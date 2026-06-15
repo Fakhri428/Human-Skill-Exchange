@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ExchangeRequest;
 use App\Models\Need;
 use App\Models\Offer;
+use App\Models\Portfolio;
 use App\Models\Plan;
 use App\Models\Review;
 use App\Models\Skill;
@@ -55,7 +56,7 @@ class SkillExchangeController extends Controller
             'plans' => Plan::orderBy('price')->get(),
             'stats' => $this->stats(),
             'recommendations' => $this->recommendations($viewer),
-            'people' => User::with(['profile', 'skills', 'offers', 'needs'])->latest()->take(6)->get(),
+            'people' => User::with(['profile', 'skills', 'offers', 'needs', 'portfolios'])->latest()->take(6)->get(),
         ]);
     }
 
@@ -119,7 +120,9 @@ class SkillExchangeController extends Controller
 
     public function dashboard(Request $request): View
     {
-        $viewer = $request->user()->load(['profile', 'plan', 'skills', 'needs', 'offers']);
+        $viewer = $request->user()->load(['profile', 'plan', 'skills', 'needs', 'offers', 'portfolios', 'mentoringBookings']);
+
+        $mentoringRooms = \App\Models\MentoringRoom::with('mentor')->latest()->take(8)->get();
 
         $exchangeRequests = ExchangeRequest::with(['fromUser', 'toUser', 'offer', 'need'])
             ->where(fn (Builder $query) => $query
@@ -136,6 +139,7 @@ class SkillExchangeController extends Controller
             'planUsage' => $this->planUsage($viewer),
             'recommendations' => $this->recommendations($viewer, 4),
             'reputation' => $this->reputation($viewer),
+            'mentoringRooms' => $mentoringRooms,
         ]);
     }
 
@@ -197,6 +201,31 @@ class SkillExchangeController extends Controller
         $user->offers()->create($data);
 
         return back()->with('status', 'Offer berhasil dipublikasikan.');
+    }
+
+    public function storePortfolio(Request $request): RedirectResponse
+    {
+        $user = $request->user()->load(['portfolios']);
+
+        $data = $request->validate([
+            'title' => ['required', 'string', 'max:160'],
+            'description' => ['required', 'string', 'max:1200'],
+            'file_url' => ['nullable', 'url', 'max:255'],
+            'project_url' => ['nullable', 'url', 'max:255'],
+        ]);
+
+        $user->portfolios()->create($data);
+
+        return back()->with('status', 'Portfolio berhasil ditambahkan.');
+    }
+
+    public function destroyPortfolio(Request $request, Portfolio $portfolio): RedirectResponse
+    {
+        abort_unless((int) $portfolio->user_id === (int) $request->user()->id, 403);
+
+        $portfolio->delete();
+
+        return back()->with('status', 'Portfolio berhasil dihapus.');
     }
 
     public function storeNeed(Request $request): RedirectResponse
@@ -332,13 +361,13 @@ class SkillExchangeController extends Controller
     private function viewer(Request $request): ?User
     {
         if ($request->user()) {
-            return $request->user()->load(['profile', 'plan', 'skills', 'needs', 'offers']);
+            return $request->user()->load(['profile', 'plan', 'skills', 'needs', 'offers', 'portfolios']);
         }
 
-        return User::with(['profile', 'plan', 'skills', 'needs', 'offers'])
+        return User::with(['profile', 'plan', 'skills', 'needs', 'offers', 'portfolios'])
             ->where('email', 'fakhri@example.com')
             ->first()
-            ?? User::with(['profile', 'plan', 'skills', 'needs', 'offers'])->first();
+            ?? User::with(['profile', 'plan', 'skills', 'needs', 'offers', 'portfolios'])->first();
     }
 
     private function categories(): Collection
@@ -411,7 +440,7 @@ class SkillExchangeController extends Controller
             ->all();
     }
 
-    private function bestPair(Collection $offers, Collection $needs): array
+    private function bestPair($offers, $needs): array
     {
         $best = ['score' => 0, 'offer' => null, 'need' => null];
 
@@ -451,6 +480,7 @@ class SkillExchangeController extends Controller
             ['label' => 'Skill', 'used' => $viewer->skills->count(), 'max' => $viewer->plan->max_skills],
             ['label' => 'Need', 'used' => $viewer->needs->count(), 'max' => $viewer->plan->max_needs],
             ['label' => 'Offer', 'used' => $viewer->offers->count(), 'max' => $viewer->plan->max_offers],
+            ['label' => 'Portfolio', 'used' => $viewer->portfolios->count(), 'max' => null],
             ['label' => 'Request', 'used' => ExchangeRequest::where('from_user_id', $viewer->id)->count(), 'max' => $viewer->plan->max_exchange_requests],
         ];
     }

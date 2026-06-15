@@ -6,12 +6,15 @@ use App\Http\Controllers\Api\ExchangeRequestController;
 use App\Http\Controllers\Api\ExchangeTypeController;
 use App\Http\Controllers\Api\MatchController;
 use App\Http\Controllers\Api\NeedController;
+use App\Http\Controllers\Api\PortfolioController;
 use App\Http\Controllers\Api\OfferController;
 use App\Http\Controllers\Api\PlanController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ReputationController;
 use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\Api\SkillController;
+use App\Http\Controllers\Api\MentoringRoomController;
+use App\Http\Controllers\Api\TransactionController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/register', [AuthApiController::class, 'register']);
@@ -58,6 +61,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/offers/{id}', [OfferController::class, 'update'])->whereNumber('id');
     Route::delete('/offers/{id}', [OfferController::class, 'destroy'])->whereNumber('id');
 
+    Route::get('/portfolios', [PortfolioController::class, 'index']);
+    Route::get('/portfolios/{id}', [PortfolioController::class, 'show'])->whereNumber('id');
+    Route::post('/portfolios', [PortfolioController::class, 'store']);
+    Route::put('/portfolios/{id}', [PortfolioController::class, 'update'])->whereNumber('id');
+    Route::delete('/portfolios/{id}', [PortfolioController::class, 'destroy'])->whereNumber('id');
+
     Route::get('/matches', [MatchController::class, 'index']);
 
     foreach (['exchange-requests', 'exchange_requests'] as $uri) {
@@ -79,6 +88,23 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/reviews', [ReviewController::class, 'index']);
     Route::post('/reviews', [ReviewController::class, 'store']);
+
+    // Mentoring rooms
+    Route::get('/mentoring-rooms', [MentoringRoomController::class, 'index']);
+    Route::get('/mentoring-rooms/{mentoringRoom}', [MentoringRoomController::class, 'show']);
+    Route::post('/mentoring-rooms', [MentoringRoomController::class, 'store']);
+    Route::put('/mentoring-rooms/{mentoringRoom}', [MentoringRoomController::class, 'update']);
+    Route::delete('/mentoring-rooms/{mentoringRoom}', [MentoringRoomController::class, 'destroy']);
+
+    // Transactions
+    Route::get('/transactions', [TransactionController::class, 'index']);
+    Route::get('/transactions/{transaction}', [TransactionController::class, 'show']);
+    Route::post('/transactions', [TransactionController::class, 'store']);
+
+    // Mentoring bookings
+    Route::get('/mentoring-bookings', [\App\Http\Controllers\Api\MentoringBookingController::class, 'index']);
+    Route::post('/mentoring-bookings', [\App\Http\Controllers\Api\MentoringBookingController::class, 'store']);
+    Route::put('/mentoring-bookings/{mentoringBooking}', [\App\Http\Controllers\Api\MentoringBookingController::class, 'update']);
 
     Route::get('/reputation', [ReputationController::class, 'show']);
 });

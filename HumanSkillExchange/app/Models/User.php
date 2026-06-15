@@ -93,4 +93,24 @@ class User extends Authenticatable
     {
         return $this->hasMany(Offer::class);
     }
+
+    public function portfolios()
+    {
+        return $this->hasMany(Portfolio::class);
+    }
+
+    public function mentoringRooms()
+    {
+        return $this->hasMany(MentoringRoom::class);
+    }
+
+    public function transactions()
+    {
+        return $this->hasMany(Transaction::class);
+    }
+
+    public function mentoringBookings()
+    {
+        return $this->hasMany(MentoringBooking::class);
+    }
 }

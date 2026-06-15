@@ -123,8 +123,8 @@ class MatchController extends BaseApiController
     private function userMatches(Request $request): JsonResponse
     {
         $currentUserId = $request->user()->id;
-        $myOffers = Offer::where('user_id', $currentUserId)->get()->map->toArray()->all();
-        $myNeeds = Need::where('user_id', $currentUserId)->get()->map->toArray()->all();
+        $myOffers = Offer::where('user_id', $currentUserId)->get()->toArray();
+        $myNeeds = Need::where('user_id', $currentUserId)->get()->toArray();
 
         $users = User::query()
             ->select('users.id', 'users.name', 'profiles.work_mode', 'profiles.location')
@@ -137,8 +137,8 @@ class MatchController extends BaseApiController
         $matches = [];
 
         foreach ($users as $user) {
-            $theirNeeds = Need::where('user_id', $user->id)->get()->map->toArray()->all();
-            $theirOffers = Offer::where('user_id', $user->id)->get()->map->toArray()->all();
+            $theirNeeds = Need::where('user_id', $user->id)->get()->toArray();
+            $theirOffers = Offer::where('user_id', $user->id)->get()->toArray();
 
             $bestMyOffer = $this->bestOfferNeedScore($myOffers, $theirNeeds);
             $bestTheirOffer = $this->bestOfferNeedScore($theirOffers, $myNeeds);

@@ -120,6 +120,7 @@ Accept: application/json
 | GET/POST/PUT/DELETE | `/api/skills` | CRUD skill | Ya |
 | GET/POST/PUT/DELETE | `/api/needs` | CRUD need | Ya |
 | GET/POST/PUT/DELETE | `/api/offers` | CRUD offer | Ya |
+| GET/POST/PUT/DELETE | `/api/portfolios` | CRUD portfolio | Ya |
 | GET | `/api/exchange_types` | Melihat jenis exchange | Tidak |
 | GET | `/api/matches` | Rule-based matching | Ya |
 | GET/POST/PATCH | `/api/exchange_requests` | Exchange request dan status | Ya |
