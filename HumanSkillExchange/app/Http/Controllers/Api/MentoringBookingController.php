@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\MentoringBooking;
 use App\Models\MentoringRoom;
+use App\Notifications\BookingApprovedNotification;
+use App\Notifications\BookingDeclinedNotification;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -50,5 +52,45 @@ class MentoringBookingController extends Controller
 
         $mentoringBooking->update($data);
         return response()->json(['data' => $mentoringBooking]);
+    }
+
+    public function mentorApprove(Request $request, MentoringBooking $booking)
+    {
+        $user = $request->user();
+        $room = $booking->room;
+        if (!$room || $room->mentor_id !== $user->id) {
+            abort(403);
+        }
+
+        $booking->update(['status' => 'approved']);
+
+        // Send notification to user
+        $booking->user->notify(new BookingApprovedNotification($booking));
+
+        if ($request->wantsJson()) {
+            return response()->json(['data' => $booking]);
+        }
+
+        return redirect()->route('dashboard')->with('status', 'Booking disetujui dan notifikasi dikirim');
+    }
+
+    public function mentorDecline(Request $request, MentoringBooking $booking)
+    {
+        $user = $request->user();
+        $room = $booking->room;
+        if (!$room || $room->mentor_id !== $user->id) {
+            abort(403);
+        }
+
+        $booking->update(['status' => 'declined']);
+
+        // Send notification to user
+        $booking->user->notify(new BookingDeclinedNotification($booking));
+
+        if ($request->wantsJson()) {
+            return response()->json(['data' => $booking]);
+        }
+
+        return redirect()->route('dashboard')->with('status', 'Booking ditolak dan notifikasi dikirim');
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ExchangeRequest;
+use App\Models\ExchangeProgress;
 use App\Models\Need;
 use App\Models\Offer;
 use App\Models\Portfolio;
@@ -10,6 +11,8 @@ use App\Models\Plan;
 use App\Models\Review;
 use App\Models\Skill;
 use App\Models\User;
+use App\Notifications\ExchangeAcceptedNotification;
+use App\Notifications\ExchangeCompletedNotification;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -124,6 +127,11 @@ class SkillExchangeController extends Controller
 
         $mentoringRooms = \App\Models\MentoringRoom::with('mentor')->latest()->take(8)->get();
 
+        $mentorBookings = \App\Models\MentoringBooking::with(['room', 'user'])
+            ->whereHas('room', function ($q) use ($viewer) {
+                $q->where('mentor_id', $viewer->id);
+            })->latest()->get();
+
         $exchangeRequests = ExchangeRequest::with(['fromUser', 'toUser', 'offer', 'need'])
             ->where(fn (Builder $query) => $query
                 ->where('from_user_id', $viewer->id)
@@ -131,6 +139,11 @@ class SkillExchangeController extends Controller
             ->latest()
             ->take(8)
             ->get();
+
+        // Load progress for each exchange
+        $exchangeRequests->each(function ($ex) {
+            $ex->progress = \App\Models\ExchangeProgress::where('exchange_request_id', $ex->id)->latest()->get();
+        });
 
         return view('dashboard', [
             'viewer' => $viewer,
@@ -140,6 +153,7 @@ class SkillExchangeController extends Controller
             'recommendations' => $this->recommendations($viewer, 4),
             'reputation' => $this->reputation($viewer),
             'mentoringRooms' => $mentoringRooms,
+            'mentorBookings' => $mentorBookings,
         ]);
     }
 
@@ -326,7 +340,13 @@ class SkillExchangeController extends Controller
             abort_unless((int) $exchangeRequest->to_user_id === (int) $user->id, 403);
             abort_unless($exchangeRequest->status === 'pending', 422);
 
-            $exchangeRequest->update(['status' => $action === 'accept' ? 'accepted' : 'rejected']);
+            if ($action === 'accept') {
+                $exchangeRequest->update(['status' => 'accepted']);
+                // Send notification to from_user
+                $exchangeRequest->fromUser->notify(new ExchangeAcceptedNotification($exchangeRequest));
+            } else {
+                $exchangeRequest->update(['status' => 'rejected']);
+            }
         }
 
         if ($action === 'start') {
@@ -342,8 +362,12 @@ class SkillExchangeController extends Controller
                 'completed_by_to_user' => (int) $exchangeRequest->to_user_id === (int) $user->id || $exchangeRequest->completed_by_to_user,
             ]);
 
-            if ($exchangeRequest->fresh()->completed_by_from_user && $exchangeRequest->fresh()->completed_by_to_user) {
+            $freshExchange = $exchangeRequest->fresh();
+            if ($freshExchange->completed_by_from_user && $freshExchange->completed_by_to_user) {
                 $exchangeRequest->update(['status' => 'completed']);
+                // Send notification to both users
+                $exchangeRequest->fromUser->notify(new ExchangeCompletedNotification($exchangeRequest));
+                $exchangeRequest->toUser->notify(new ExchangeCompletedNotification($exchangeRequest));
             } else {
                 $exchangeRequest->update(['status' => 'in_progress']);
             }
@@ -529,5 +553,47 @@ class SkillExchangeController extends Controller
         return ExchangeRequest::where('from_user_id', $user->id)
             ->where('created_at', '>=', now()->startOfMonth())
             ->count() >= (int) $limit;
+    }
+
+    public function storeExchangeProgress(Request $request, ExchangeRequest $exchangeRequest): RedirectResponse
+    {
+        $user = $request->user();
+
+        abort_unless((int) $exchangeRequest->from_user_id === (int) $user->id || (int) $exchangeRequest->to_user_id === (int) $user->id, 403);
+        abort_unless(in_array($exchangeRequest->status, ['accepted', 'in_progress'], true), 422);
+
+        $data = $request->validate([
+            'progress_note' => ['required', 'string', 'max:2000'],
+            'file_url' => ['nullable', 'url', 'max:255'],
+        ]);
+
+        ExchangeProgress::create([
+            'exchange_request_id' => $exchangeRequest->id,
+            'user_id' => $user->id,
+            'progress_note' => $data['progress_note'],
+            'file_url' => $data['file_url'],
+        ]);
+
+        return back()->with('status', 'Progress berhasil ditambahkan.');
+    }
+
+    public function deleteExchangeProgress(Request $request, ExchangeProgress $progress): RedirectResponse
+    {
+        abort_unless((int) $progress->user_id === (int) $request->user()->id, 403);
+
+        $progress->delete();
+
+        return back()->with('status', 'Progress berhasil dihapus.');
+    }
+
+    public function showProfile(Request $request, User $user): View
+    {
+        $user->load(['profile', 'plan', 'skills', 'offers', 'needs', 'portfolios']);
+
+        return view('skill-exchange.profile.show', [
+            'user' => $user,
+            'reputation' => $this->reputation($user),
+            'viewer' => $request->user(),
+        ]);
     }
 }

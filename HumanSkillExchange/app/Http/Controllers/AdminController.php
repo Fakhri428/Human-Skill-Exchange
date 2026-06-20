@@ -6,6 +6,8 @@ use App\Models\MentoringRoom;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Models\MentoringBooking;
+use App\Notifications\BookingApprovedNotification;
+use App\Notifications\BookingDeclinedNotification;
 use Illuminate\Http\Request;
 
 class AdminController extends Controller
@@ -19,30 +21,32 @@ class AdminController extends Controller
         return view('admin.dashboard', compact('users', 'rooms', 'transactions', 'bookings'));
     }
 
-    public function approveBooking(Request $request, MentoringBooking $booking)
+    public function approveBooking(Request $request, $booking)
     {
-        $b = MentoringBooking::find($booking->id);
-        if ($b) {
-            $b->update(['status' => 'approved']);
-        }
-        return back()->with('status', 'Booking approved.');
+        $bookingRecord = MentoringBooking::findOrFail($booking);
+        $bookingRecord->update(['status' => 'approved']);
+
+        // Send notification to user
+        $bookingRecord->user->notify(new BookingApprovedNotification($bookingRecord));
+
+        return back()->with('status', 'Booking approved dan notifikasi dikirim.');
     }
 
-    public function declineBooking(Request $request, MentoringBooking $booking)
+    public function declineBooking(Request $request, $booking)
     {
-        $b = MentoringBooking::find($booking->id);
-        if ($b) {
-            $b->update(['status' => 'declined']);
-        }
-        return back()->with('status', 'Booking declined.');
+        $bookingRecord = MentoringBooking::findOrFail($booking);
+        $bookingRecord->update(['status' => 'declined']);
+
+        // Send notification to user
+        $bookingRecord->user->notify(new BookingDeclinedNotification($bookingRecord));
+
+        return back()->with('status', 'Booking declined dan notifikasi dikirim.');
     }
 
-    public function completeTransaction(Request $request, \App\Models\Transaction $transaction)
+    public function completeTransaction(Request $request, $transaction)
     {
-        $t = \App\Models\Transaction::find($transaction->id);
-        if ($t) {
-            $t->update(['status' => 'completed']);
-        }
+        \App\Models\Transaction::where('id', $transaction)->update(['status' => 'completed']);
         return back()->with('status', 'Transaction marked completed.');
     }
 }
+

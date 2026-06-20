@@ -66,7 +66,7 @@ class MentoringBookingTest extends TestCase
             'duration_minutes' => 60,
         ]);
 
-        $this->withoutMiddleware(\Illuminate\Auth\Middleware\Authorize::class);
+        $this->withoutMiddleware();
         $this->actingAs($admin)
             ->post(route('admin.bookings.approve', $booking))
             ->assertRedirect();
@@ -99,7 +99,7 @@ class MentoringBookingTest extends TestCase
             'platform_fee' => 0,
         ]);
 
-        $this->withoutMiddleware(\Illuminate\Auth\Middleware\Authorize::class);
+        $this->withoutMiddleware();
         $this->actingAs($admin)
             ->post(route('admin.transactions.complete', $tx))
             ->assertRedirect();

@@ -64,6 +64,41 @@
                         </div>
                     </section>
 
+                    @if (!empty($mentorBookings) && $mentorBookings->count())
+                        <section class="rounded-lg border border-slate-200 bg-white p-5">
+                            <h2 class="text-base font-semibold text-slate-950">Booking untuk saya (sebagai mentor)</h2>
+                            <p class="mt-1 text-sm text-slate-500">Kelola booking yang masuk untuk mentoring Anda.</p>
+
+                            <div class="mt-4 divide-y divide-slate-100">
+                                @foreach ($mentorBookings as $mb)
+                                    <article class="p-4">
+                                        <div class="flex items-start justify-between">
+                                            <div>
+                                                <p class="font-semibold text-slate-950">{{ $mb->user?->name }} — {{ $mb->room?->title }}</p>
+                                                <p class="mt-1 text-sm text-slate-500">Jadwal: {{ optional($mb->scheduled_at)->format('Y-m-d H:i') }} · Durasi: {{ $mb->duration_minutes ?? '—' }} menit</p>
+                                                <p class="mt-2 text-xs text-slate-500">Catatan: {{ $mb->notes ?? 'Tidak ada' }}</p>
+                                            </div>
+                                            <div class="flex gap-2">
+                                                @if ($mb->status === 'pending')
+                                                    <form method="POST" action="{{ route('mentoring-bookings.mentor.approve', $mb) }}">
+                                                        @csrf
+                                                        <button type="submit" class="rounded-md bg-teal-600 px-3 py-2 text-xs font-semibold text-white">Approve</button>
+                                                    </form>
+                                                    <form method="POST" action="{{ route('mentoring-bookings.mentor.decline', $mb) }}">
+                                                        @csrf
+                                                        <button type="submit" class="rounded-md border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700">Decline</button>
+                                                    </form>
+                                                @else
+                                                    <span class="rounded-md border px-3 py-2 text-xs font-semibold">{{ $mb->status }}</span>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </article>
+                                @endforeach
+                            </div>
+                        </section>
+                    @endif
+
                     <section class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                         @foreach ($stats as $stat)
                             <div class="rounded-lg border p-4 {{ $metricTone[$stat['tone']] ?? 'border-slate-200 bg-white text-slate-950' }}">
@@ -359,6 +394,43 @@
                                             @endunless
                                         @endif
                                     </div>
+
+                                    @if (in_array($exchange->status, ['accepted', 'in_progress', 'completed'], true))
+                                        <div class="mt-4 border-t border-slate-200 pt-4">
+                                            <p class="mb-3 text-xs font-semibold text-slate-700">Progress</p>
+                                            
+                                            @if ($exchange->progress->count())
+                                                <div class="mb-3 space-y-2">
+                                                    @foreach ($exchange->progress as $prog)
+                                                        <div class="rounded-md bg-slate-50 p-3 text-sm">
+                                                            <p class="font-semibold text-slate-900">{{ $prog->user?->name ?? 'Unknown' }}</p>
+                                                            <p class="mt-1 text-slate-700">{{ $prog->progress_note }}</p>
+                                                            @if ($prog->file_url)
+                                                                <a href="{{ $prog->file_url }}" target="_blank" class="mt-1 inline-block text-xs text-teal-700 font-semibold hover:underline">Lihat file</a>
+                                                            @endif
+                                                            @if ((int) $prog->user_id === (int) $viewer->id)
+                                                                <form method="POST" action="{{ route('exchange-progress.destroy', $prog) }}" class="mt-1 inline">
+                                                                    @csrf
+                                                                    @method('DELETE')
+                                                                    <button type="submit" class="text-xs text-rose-600 font-semibold hover:underline">Hapus</button>
+                                                                </form>
+                                                            @endif
+                                                            <p class="mt-1 text-xs text-slate-500">{{ $prog->created_at->format('d M Y H:i') }}</p>
+                                                        </div>
+                                                    @endforeach
+                                                </div>
+                                            @endif
+
+                                            @if (in_array($exchange->status, ['accepted', 'in_progress'], true))
+                                                <form method="POST" action="{{ route('exchange-requests.progress.store', $exchange) }}" class="space-y-2">
+                                                    @csrf
+                                                    <textarea name="progress_note" placeholder="Tambahkan catatan progress..." rows="2" required class="w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-teal-500 focus:ring-teal-500">{{ old('progress_note') }}</textarea>
+                                                    <input name="file_url" placeholder="Link file/bukti (opsional)" type="url" class="w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                                                    <button type="submit" class="w-full rounded-md bg-teal-600 px-3 py-2 text-xs font-semibold text-white hover:bg-teal-700">Upload progress</button>
+                                                </form>
+                                            @endif
+                                        </div>
+                                    @endif
                                 </article>
                             @empty
                                 <div class="p-5 text-sm text-slate-500">Belum ada request exchange.</div>

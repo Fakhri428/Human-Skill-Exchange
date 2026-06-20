@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', [SkillExchangeController::class, 'index'])->name('home');
 Route::get('/market', [SkillExchangeController::class, 'index'])->name('market');
 Route::get('/preview', [SkillExchangeController::class, 'index'])->name('preview');
+Route::get('/users/{user}/profile', [SkillExchangeController::class, 'showProfile'])->name('users.profile');
 Route::get('/offers/{offer}', [SkillExchangeController::class, 'showOffer'])->name('offers.show');
 Route::get('/needs/{need}', [SkillExchangeController::class, 'showNeed'])->name('needs.show');
 Route::get('/matches', [SkillExchangeController::class, 'matches'])->name('matches');
@@ -38,9 +39,16 @@ Route::middleware([
 
     // Web booking endpoint for users
     Route::post('/mentoring-bookings', [App\Http\Controllers\Api\MentoringBookingController::class, 'store'])->name('mentoring-bookings.store');
+    // Mentor actions: approve/decline bookings for rooms they own
+    Route::post('/mentoring-bookings/{booking}/mentor-approve', [App\Http\Controllers\Api\MentoringBookingController::class, 'mentorApprove'])->name('mentoring-bookings.mentor.approve');
+    Route::post('/mentoring-bookings/{booking}/mentor-decline', [App\Http\Controllers\Api\MentoringBookingController::class, 'mentorDecline'])->name('mentoring-bookings.mentor.decline');
 
     // Admin actions for bookings and transactions
     Route::post('/admin/bookings/{booking}/approve', [App\Http\Controllers\AdminController::class, 'approveBooking'])->middleware('can:admin')->name('admin.bookings.approve');
     Route::post('/admin/bookings/{booking}/decline', [App\Http\Controllers\AdminController::class, 'declineBooking'])->middleware('can:admin')->name('admin.bookings.decline');
     Route::post('/admin/transactions/{transaction}/complete', [App\Http\Controllers\AdminController::class, 'completeTransaction'])->middleware('can:admin')->name('admin.transactions.complete');
+
+    // Exchange progress upload
+    Route::post('/exchange-requests/{exchangeRequest}/progress', [SkillExchangeController::class, 'storeExchangeProgress'])->name('exchange-requests.progress.store');
+    Route::delete('/exchange-progress/{progress}', [SkillExchangeController::class, 'deleteExchangeProgress'])->name('exchange-progress.destroy');
 });
